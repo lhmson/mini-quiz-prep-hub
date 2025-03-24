@@ -44,14 +44,12 @@ export function QuizMusicPlayer() {
     console.log('Selected music:', selectedMusic);
 
     if (selectedMusic?.id === 'none') {
-      console.log('Stopping music');
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       return;
     }
 
     if (selectedMusic?.url) {
-      console.log('Playing music:', selectedMusic.url);
       audioRef.current.src = selectedMusic.url;
       audioRef.current.volume = selectedMusic.volume;
       audioRef.current.loop = true;
@@ -70,7 +68,6 @@ export function QuizMusicPlayer() {
 
       // Add load handling
       audioRef.current.onloadeddata = () => {
-        console.log('Audio loaded successfully');
         console.log('Audio element state:', {
           src: audioRef.current?.src,
           volume: audioRef.current?.volume,
@@ -84,7 +81,6 @@ export function QuizMusicPlayer() {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log('Audio playing successfully');
             console.log('Audio element state:', {
               src: audioRef.current?.src,
               volume: audioRef.current?.volume,

@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuizStore } from '@/store/quiz';
-import { fetchQuestions, filterQuestions } from '@/services/questions';
+import {
+  fetchQuestions,
+  filterQuestions,
+  shuffleQuestions,
+} from '@/services/questions';
 import { QuizSettings, Question } from '@/lib/types/quiz';
 import QuizSettingsForm from '@/components/quiz/QuizSettingsForm';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
@@ -21,6 +25,7 @@ export default function QuizPage() {
     const loadQuestions = async () => {
       try {
         const fetchedQuestions = await fetchQuestions();
+        console.log('Fetched questions:', fetchedQuestions);
         setQuestions(fetchedQuestions);
       } catch (error) {
         console.error('Error loading questions:', error);
@@ -40,16 +45,11 @@ export default function QuizPage() {
   }, [router]);
 
   const handleStartQuiz = (quizSettings: QuizSettings) => {
-    console.log('Starting quiz with settings:', quizSettings); // Debug log
-    console.log('Available questions:', questions.length); // Debug log
-
     // Filter questions based on settings
     const filteredQuestions = filterQuestions(questions, {
       categories: quizSettings.categories,
       limit: quizSettings.numberOfQuestions,
     });
-
-    console.log('Filtered questions:', filteredQuestions.length); // Debug log
 
     if (filteredQuestions.length === 0) {
       alert(
@@ -58,8 +58,11 @@ export default function QuizPage() {
       return;
     }
 
+    // Shuffle the filtered questions before starting the quiz
+    const shuffledQuestions = shuffleQuestions(filteredQuestions);
+
     // Set questions in store before starting quiz
-    useQuizStore.setState({ questions: filteredQuestions });
+    useQuizStore.setState({ questions: shuffledQuestions });
     startQuiz(quizSettings);
   };
 

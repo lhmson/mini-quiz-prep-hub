@@ -3,12 +3,45 @@ import { Question } from '@/lib/types/quiz';
 const GITHUB_RAW_URL =
   'https://raw.githubusercontent.com/lydiahallie/javascript-questions/master/README.md';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || '';
+
+// Cache for questions
+let questionsCache: Question[] | null = null;
+
+export async function saveQuestion(question: Question) {
+  try {
+    const response = await fetch(`${BASE_URL}/api/questions/save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(question),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save question');
+    }
+  } catch (error) {
+    console.error('Error saving question:', error);
+    throw error;
+  }
+}
+
 export async function fetchQuestions(): Promise<Question[]> {
   try {
+    // Return cached questions if available
+    if (questionsCache) {
+      return questionsCache;
+    }
+
     const response = await fetch(GITHUB_RAW_URL);
     const markdown = await response.text();
-    console.log('Markdown:', markdown);
-    return parseQuestions(markdown);
+    const parsedQuestions = parseQuestions(markdown);
+
+    // Cache the questions
+    questionsCache = parsedQuestions;
+
+    return parsedQuestions;
   } catch (error) {
     console.error('Error fetching questions:', error);
     return [];
@@ -20,8 +53,6 @@ function parseQuestions(markdown: string): Question[] {
   // Split by question number pattern (e.g., "###### 1.", "###### 2.", etc.)
   const questionBlocks = markdown.split(/\n(?=######\s+\d+\.)/).slice(1);
 
-  console.log('Found question blocks:', questionBlocks.length);
-
   questionBlocks.forEach((block, index) => {
     const lines = block.trim().split('\n');
     const questionText = lines[0].replace(/^######\s+\d+\.\s*/, '').trim();
@@ -29,9 +60,6 @@ function parseQuestions(markdown: string): Question[] {
     let correctAnswer = -1;
     let explanation = '';
     let codeSnippet = '';
-
-    console.log('Processing block:', index + 1);
-    console.log('Question text:', questionText);
 
     let inExplanation = false;
     let inCodeBlock = false;
@@ -82,11 +110,6 @@ function parseQuestions(markdown: string): Question[] {
       }
     });
 
-    console.log('Options:', options);
-    console.log('Correct answer:', correctAnswer);
-    console.log('Explanation:', explanation);
-    console.log('Code snippet:', codeSnippet);
-
     if (questionText && options.length > 0 && correctAnswer !== -1) {
       questions.push({
         id: `q${index + 1}`,
@@ -101,12 +124,16 @@ function parseQuestions(markdown: string): Question[] {
     }
   });
 
-  console.log('Total parsed questions:', questions.length);
   return questions;
 }
 
 export function shuffleQuestions(questions: Question[]): Question[] {
-  return [...questions].sort(() => Math.random() - 0.5);
+  const shuffled = [...questions];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 export function filterQuestions(
@@ -116,19 +143,24 @@ export function filterQuestions(
     limit?: number;
   }
 ): Question[] {
+  // Create a new array and shuffle it multiple times
   let filtered = [...questions];
+  for (let i = 0; i < 3; i++) {
+    filtered = shuffleQuestions(filtered);
+  }
 
   if (settings.categories?.length) {
     filtered = filtered.filter((q) =>
       settings.categories?.includes(q.category)
     );
+    // Shuffle again after filtering
+    filtered = shuffleQuestions(filtered);
   }
 
   if (settings.limit) {
-    filtered = shuffleQuestions(filtered).slice(0, settings.limit);
+    filtered = filtered.slice(0, settings.limit);
   }
 
-  console.log('Filtered questions:', filtered.length); // Debug log
   return filtered;
 }
 

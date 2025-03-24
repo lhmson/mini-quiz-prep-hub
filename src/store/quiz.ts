@@ -2,7 +2,12 @@
 
 import { create } from 'zustand';
 import { QuizSettings, QuizStore } from '@/lib/types/quiz';
-import { parseQuestions } from '@/services/questions';
+import {
+  fetchQuestions,
+  filterQuestions,
+  saveQuestion,
+} from '@/services/questions';
+import { saveQuizProgress } from '@/services/progress';
 
 const defaultSettings: QuizSettings = {
   categories: [],
@@ -27,14 +32,11 @@ export const useQuizStore = create<QuizStore>((set, get) => ({
   navigateToResults: () => {},
   startQuiz: async (settings: QuizSettings) => {
     try {
-      const response = await fetch(
-        'https://raw.githubusercontent.com/lydiahallie/javascript-questions/master/README.md'
-      );
-      const markdown = await response.text();
-      const questions = parseQuestions(markdown);
-      const filteredQuestions = questions
-        .filter((q) => settings.categories.includes(q.category))
-        .slice(0, settings.numberOfQuestions);
+      const questions = await fetchQuestions();
+      const filteredQuestions = filterQuestions(questions, {
+        categories: settings.categories,
+        limit: settings.numberOfQuestions,
+      });
 
       set({
         questions: filteredQuestions,
@@ -52,13 +54,25 @@ export const useQuizStore = create<QuizStore>((set, get) => ({
       console.error('Error starting quiz:', error);
     }
   },
-  submitAnswer: (answerIndex: number) => {
+  submitAnswer: async (answerIndex: number, userId?: string) => {
     const state = get();
     const currentQuestion = state.questions[state.currentQuestionIndex];
     const isCorrect = answerIndex === currentQuestion.correctAnswer;
     const newWrongAnswers = isCorrect
       ? state.wrongAnswers
       : state.wrongAnswers + 1;
+
+    // Save progress if user is logged in
+    if (userId) {
+      try {
+        // Save the question first
+        await saveQuestion(currentQuestion);
+        // Then save the progress
+        await saveQuizProgress(currentQuestion.id, isCorrect);
+      } catch (error) {
+        console.error('Error saving progress:', error);
+      }
+    }
 
     if (newWrongAnswers > state.settings.maxWrongAnswers) {
       set({

@@ -53,7 +53,7 @@ export interface QuizStore {
   isActive: boolean;
   startTime?: Date;
   endTime?: Date;
-  submitAnswer: (answerIndex: number) => void;
+  submitAnswer: (answerIndex: number, userId?: string) => Promise<void>;
   startQuiz: (settings: QuizSettings) => void;
   resetQuiz: () => void;
   navigateToResults: () => void;

@@ -121,7 +121,7 @@ export default function QuizSettingsForm({ onStart }: QuizSettingsFormProps) {
       </div>
 
       <div>
-        <label className='block text-sm font-medium text-gray-700'>
+        <label className='block text-sm font-medium mb-2'>
           Background Music
         </label>
         <select
