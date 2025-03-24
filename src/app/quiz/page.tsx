@@ -9,6 +9,7 @@ import QuizSettingsForm from '@/components/quiz/QuizSettingsForm';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
 import QuizProgress from '@/components/quiz/QuizProgress';
 import QuizTimer from '@/components/quiz/QuizTimer';
+import { QuizMusicPlayer } from '@/components/quiz/QuizMusicPlayer';
 
 export default function QuizPage() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function QuizPage() {
 
   return (
     <div className='container mx-auto px-4 py-8'>
+      <QuizMusicPlayer />
       <h1 className='text-3xl font-bold text-center mb-8'>JavaScript Quiz</h1>
 
       {!isActive ? (

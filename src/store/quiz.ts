@@ -2,12 +2,14 @@
 
 import { create } from 'zustand';
 import { QuizSettings, QuizStore } from '@/lib/types/quiz';
+import { parseQuestions } from '@/services/questions';
 
 const defaultSettings: QuizSettings = {
+  categories: [],
   numberOfQuestions: 10,
   timeLimit: 30,
-  maxWrongAnswers: 5,
-  categories: [],
+  maxWrongAnswers: 3,
+  musicType: 'none',
 };
 
 export const useQuizStore = create<QuizStore>((set, get) => ({
@@ -18,87 +20,90 @@ export const useQuizStore = create<QuizStore>((set, get) => ({
   score: 0,
   wrongAnswers: 0,
   answers: {},
-  settings: defaultSettings,
   isActive: false,
   startTime: undefined,
   endTime: undefined,
+  settings: defaultSettings,
   navigateToResults: () => {},
+  startQuiz: async (settings: QuizSettings) => {
+    try {
+      const response = await fetch(
+        'https://raw.githubusercontent.com/lydiahallie/javascript-questions/master/README.md'
+      );
+      const markdown = await response.text();
+      const questions = parseQuestions(markdown);
+      const filteredQuestions = questions
+        .filter((q) => settings.categories.includes(q.category))
+        .slice(0, settings.numberOfQuestions);
 
-  startQuiz: (settings: QuizSettings) => {
-    set((state) => {
-      return {
-        settings,
-        questions: state.questions,
+      set({
+        questions: filteredQuestions,
+        currentQuestion: filteredQuestions[0],
         currentQuestionIndex: 0,
-        totalQuestions: state.questions.length,
-        currentQuestion: state.questions[0] || null,
+        totalQuestions: filteredQuestions.length,
         score: 0,
         wrongAnswers: 0,
         answers: {},
         isActive: true,
         startTime: new Date(),
-        endTime: undefined,
-      };
-    });
+        settings,
+      });
+    } catch (error) {
+      console.error('Error starting quiz:', error);
+    }
   },
-
   submitAnswer: (answerIndex: number) => {
     const state = get();
-    const currentQuestion = state.currentQuestion;
-
-    if (!currentQuestion) return;
-
+    const currentQuestion = state.questions[state.currentQuestionIndex];
     const isCorrect = answerIndex === currentQuestion.correctAnswer;
-    const newAnswers = {
-      ...state.answers,
-      [currentQuestion.id]: answerIndex,
-    };
+    const newWrongAnswers = isCorrect
+      ? state.wrongAnswers
+      : state.wrongAnswers + 1;
 
-    set((state) => {
-      const nextQuestion =
-        state.questions[state.currentQuestionIndex + 1] || null;
-      const isLastQuestion = !nextQuestion;
-      const newWrongAnswers = isCorrect
-        ? state.wrongAnswers
-        : state.wrongAnswers + 1;
+    if (newWrongAnswers > state.settings.maxWrongAnswers) {
+      set({
+        isActive: false,
+        endTime: new Date(),
+      });
+      state.navigateToResults();
+      return;
+    }
 
-      // Check if we've exceeded the maximum wrong answers
-      if (newWrongAnswers > state.settings.maxWrongAnswers) {
-        state.navigateToResults();
-        return {
-          score: state.score,
-          wrongAnswers: newWrongAnswers,
-          answers: newAnswers,
-          currentQuestionIndex: state.currentQuestionIndex,
-          currentQuestion: state.currentQuestion,
-          isActive: false,
-          endTime: new Date(),
-        };
-      }
-
-      return {
-        score: isCorrect ? state.score + 1 : state.score,
-        wrongAnswers: newWrongAnswers,
-        answers: newAnswers,
-        currentQuestionIndex: state.currentQuestionIndex + 1,
-        currentQuestion: nextQuestion,
-        isActive: !isLastQuestion,
-        endTime: isLastQuestion ? new Date() : state.endTime,
-      };
+    set({
+      score: isCorrect ? state.score + 1 : state.score,
+      wrongAnswers: newWrongAnswers,
+      answers: {
+        ...state.answers,
+        [currentQuestion.id]: answerIndex,
+      },
+      currentQuestionIndex: state.currentQuestionIndex + 1,
+      currentQuestion:
+        state.currentQuestionIndex + 1 < state.questions.length
+          ? state.questions[state.currentQuestionIndex + 1]
+          : null,
     });
   },
-
   resetQuiz: () => {
     set({
-      currentQuestionIndex: 0,
+      questions: [],
       currentQuestion: null,
+      currentQuestionIndex: 0,
+      totalQuestions: 0,
       score: 0,
       wrongAnswers: 0,
       answers: {},
-      settings: defaultSettings,
       isActive: false,
       startTime: undefined,
       endTime: undefined,
+      settings: defaultSettings,
     });
+  },
+  updateSettings: (newSettings: Partial<QuizSettings>) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        ...newSettings,
+      },
+    }));
   },
 }));

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { QuizSettings } from '@/lib/types/quiz';
+import { useQuizStore } from '@/store/quiz';
 
 interface QuizSettingsFormProps {
   onStart: (settings: QuizSettings) => void;
@@ -13,6 +14,7 @@ export default function QuizSettingsForm({ onStart }: QuizSettingsFormProps) {
     timeLimit: 30,
     maxWrongAnswers: 5,
     categories: ['JavaScript'],
+    musicType: 'none',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,6 +41,32 @@ export default function QuizSettingsForm({ onStart }: QuizSettingsFormProps) {
         [field]: numValue,
       });
     }
+  };
+
+  const handleMaxWrongAnswersChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = parseInt(e.target.value);
+    if (value >= 0 && value <= settings.numberOfQuestions) {
+      setSettings({
+        ...settings,
+        maxWrongAnswers: value,
+      });
+    }
+  };
+
+  const handleMusicTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMusicType = e.target.value as
+      | 'none'
+      | 'mild'
+      | 'medium'
+      | 'energetic';
+    setSettings({
+      ...settings,
+      musicType: newMusicType,
+    });
+    // Update store settings immediately
+    useQuizStore.getState().updateSettings({ musicType: newMusicType });
   };
 
   return (
@@ -83,15 +111,30 @@ export default function QuizSettingsForm({ onStart }: QuizSettingsFormProps) {
           min='1'
           max={settings.numberOfQuestions}
           value={settings.maxWrongAnswers || ''}
-          onChange={(e) =>
-            handleNumberChange('maxWrongAnswers', e.target.value)
-          }
+          onChange={handleMaxWrongAnswersChange}
           className='w-full px-3 py-2 border rounded-md'
           required
         />
         <p className='text-sm text-gray-500 mt-1'>
           Must be less than or equal to number of questions
         </p>
+      </div>
+
+      <div>
+        <label className='block text-sm font-medium text-gray-700'>
+          Background Music
+        </label>
+        <select
+          value={settings.musicType}
+          onChange={handleMusicTypeChange}
+          className='w-full px-3 py-2 border rounded-md'
+          required
+        >
+          <option value='none'>No Music</option>
+          <option value='mild'>Mild (Lo-fi)</option>
+          <option value='medium'>Medium (Ambient)</option>
+          <option value='energetic'>Energetic (Upbeat)</option>
+        </select>
       </div>
 
       <button

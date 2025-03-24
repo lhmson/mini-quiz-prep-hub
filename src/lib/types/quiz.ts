@@ -16,6 +16,7 @@ export interface QuizSettings {
   timeLimit: number; // in minutes
   maxWrongAnswers: number;
   categories: string[];
+  musicType: 'none' | 'mild' | 'medium' | 'energetic';
 }
 
 export interface QuizState {
@@ -56,4 +57,5 @@ export interface QuizStore {
   startQuiz: (settings: QuizSettings) => void;
   resetQuiz: () => void;
   navigateToResults: () => void;
+  updateSettings: (newSettings: Partial<QuizSettings>) => void;
 }
