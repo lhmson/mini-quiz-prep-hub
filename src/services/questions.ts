@@ -39,7 +39,10 @@ function parseQuestions(markdown: string): Question[] {
     lines.forEach((line) => {
       const trimmedLine = line.trim();
 
-      if (trimmedLine.startsWith('```javascript')) {
+      if (
+        trimmedLine.startsWith('```javascript') ||
+        trimmedLine.startsWith('```html')
+      ) {
         inCodeBlock = true;
         return;
       }
