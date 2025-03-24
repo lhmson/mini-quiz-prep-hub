@@ -53,7 +53,7 @@ function parseQuestions(markdown: string): Question[] {
       }
 
       if (inCodeBlock) {
-        codeSnippet += trimmedLine + '\n';
+        codeSnippet += line + '\n';
         return;
       }
 
