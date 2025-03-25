@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Question } from '@/lib/types/quiz';
 import { getQuizProgress } from '@/services/progress';
 import ReactMarkdown from 'react-markdown';
+import Image from 'next/image';
 
 interface ProgressItem {
   questionId: string;
@@ -26,7 +27,8 @@ export default function ProfilePage() {
         try {
           const data = await getQuizProgress();
           setProgress(data);
-        } catch (error) {
+        } catch (err) {
+          console.error('Error loading progress:', err);
           setError('Failed to load progress. Please try again later.');
         } finally {
           setIsLoading(false);
@@ -95,11 +97,14 @@ export default function ProfilePage() {
         <div className='bg-white rounded-lg shadow-lg p-6 mb-6'>
           <div className='flex items-center space-x-4 mb-6'>
             {session.user?.image && (
-              <img
-                src={session.user.image}
-                alt={session.user.name || 'Profile'}
-                className='w-16 h-16 rounded-full'
-              />
+              <div className='relative w-16 h-16'>
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name || 'Profile'}
+                  fill
+                  className='rounded-full object-cover'
+                />
+              </div>
             )}
             <div>
               <h1 className='text-2xl font-bold'>{session.user?.name}</h1>
